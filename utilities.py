@@ -3,6 +3,7 @@ import pyro
 import torch
 from pyro.distributions import Normal
 from pyro.infer import SVI, Trace_ELBO
+from pyro.infer import MCMC, NUTS
 from pyro.optim import Adam
 
 
@@ -27,7 +28,21 @@ def model_normal(mu_mean, std_mean, std_likelihood, measurements):
     return mean
 
 
-def inference(model, guide, model_args, optim_args, n_steps=1000, print_epoch=100):
+def sampling(model, sampler_args, model_args):
+    """
+    MCMC sampling.
+    """
+    nuts_kernel = NUTS(model)
+    mcmc = MCMC(nuts_kernel, **sampler_args)
+    mcmc.run(**model_args)
+    mcmc.summary()
+
+    return mcmc.get_samples()
+    
+
+
+def variational_inference(model, guide, model_args, optim_args, n_steps=1000,
+                          print_epoch=100):
     """
     Variational inference loop.
     """
@@ -53,3 +68,4 @@ def inference(model, guide, model_args, optim_args, n_steps=1000, print_epoch=10
         plt.semilogy(l_epochs, l_loss)
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
+    plt.savefig("loss_markov.png", dpi=600)
